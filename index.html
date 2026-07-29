@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>Youtube L.ink</title>
+  <style>
+    :root {
+      --bg-dark: #09090b;
+      --bg-card: #121215;
+      --bg-hover: #1c1c21;
+      --accent-red: #ff0000;
+      --accent-green: #1db954;
+      --discord-blurple: #5865f2;
+      --text-main: #f4f4f5;
+      --text-sub: #a1a1aa;
+      --border-color: #27272a;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Pretendard', -apple-system, sans-serif; user-select: none; }
+    body { background-color: var(--bg-dark); color: var(--text-main); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+
+    /* 커스텀 타이틀바 */
+    .titlebar {
+      height: 38px; background: #000000; display: flex; align-items: center; justify-content: space-between;
+      padding: 0 16px; -webkit-app-region: drag; border-bottom: 1px solid var(--border-color); flex-shrink: 0;
+    }
+    .brand { display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 13px; letter-spacing: 0.5px; }
+    .brand-logo { color: var(--accent-red); font-size: 14px; }
+    .window-controls { -webkit-app-region: no-drag; display: flex; gap: 12px; font-size: 12px; color: var(--text-sub); }
+
+    /* 메인 레이아웃 */
+    .container { display: flex; flex: 1; padding: 16px; gap: 16px; height: calc(100vh - 38px); overflow: hidden; }
+    
+    /* 좌측 메인 영역 */
+    .player-section { flex: 3.2; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 16px; overflow: hidden; }
+    
+    .search-bar-wrap { display: flex; gap: 10px; background: #000000; padding: 6px 10px; border-radius: 12px; border: 1px solid var(--border-color); align-items: center; }
+    .search-input { flex: 1; background: transparent; border: none; padding: 8px 10px; color: #fff; outline: none; font-size: 14px; }
+    .btn-action { background: var(--accent-red); color: #fff; font-weight: 700; border: none; border-radius: 8px; padding: 8px 18px; cursor: pointer; transition: all 0.2s ease; font-size: 13px; }
+    .btn-action:hover { opacity: 0.9; transform: translateY(-1px); }
+
+    .video-container { flex: 1; background: #000000; border-radius: 12px; overflow: hidden; position: relative; border: 1px solid var(--border-color); min-height: 320px; }
+    #player { width: 100%; height: 100%; border: none; }
+
+    /* 하단 정보바 & 자동재생 스위치 */
+    .player-toolbar { display: flex; align-items: center; justify-content: space-between; background: #000000; padding: 12px 16px; border-radius: 12px; border: 1px solid var(--border-color); }
+    .now-playing-title { font-size: 13px; font-weight: 600; color: var(--text-main); max-width: 60%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    
+    .autoplay-toggle { display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--text-sub); font-weight: 600; }
+    .switch { position: relative; display: inline-block; width: 40px; height: 22px; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #27272a; transition: .3s; border-radius: 22px; }
+    .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 3px; bottom: 3px; background-color: white; transition: .3s; border-radius: 50%; }
+    input:checked + .slider { background-color: var(--accent-green); }
+    input:checked + .slider:before { transform: translateX(18px); }
+
+    /* 우측 상태/검색결과 패널 */
+    .side-section { flex: 1.4; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 18px; overflow: hidden; }
+    .section-title { font-size: 11px; font-weight: 700; color: var(--text-sub); text-transform: uppercase; letter-spacing: 1px; display: flex; justify-content: space-between; align-items: center; }
+
+    .user-card { display: flex; align-items: center; gap: 12px; background: var(--bg-hover); padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border-color); }
+    .avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--discord-blurple); display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 12px; }
+    .user-status { font-size: 11px; color: var(--accent-green); display: flex; align-items: center; gap: 4px; }
+
+    /* 검색 결과 및 추천 목록 카드리스트 */
+    .results-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding-right: 4px; }
+    .results-list::-webkit-scrollbar { width: 4px; }
+    .results-list::-webkit-scrollbar-thumb { background: #27272a; border-radius: 4px; }
+
+    .video-card { display: flex; gap: 10px; background: #000000; padding: 8px; border-radius: 8px; border: 1px solid var(--border-color); cursor: pointer; transition: all 0.2s ease; }
+    .video-card:hover { background: var(--bg-hover); border-color: #3f3f46; transform: translateX(2px); }
+    .card-thumb { width: 100px; height: 56px; border-radius: 6px; object-fit: cover; flex-shrink: 0; background: #18181b; }
+    .card-info { display: flex; flex-direction: column; justify-content: center; gap: 4px; overflow: hidden; }
+    .card-title { font-size: 12px; font-weight: 600; color: var(--text-main); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.3; }
+    .card-channel { font-size: 11px; color: var(--text-sub); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    /* 로그 창 */
+    .sync-log { height: 90px; background: #000000; border-radius: 10px; padding: 10px; font-family: monospace; font-size: 10px; color: var(--text-sub); overflow-y: auto; border: 1px solid var(--border-color); flex-shrink: 0; }
+  </style>
+</head>
+<body>
+  <!-- 상단 브랜딩 타이틀바 -->
+  <div class="titlebar">
+    <div class="brand">
+      <span class="brand-logo">▶</span>
+      <span>Youtube L.ink</span>
+    </div>
+    <div class="window-controls">
+      <span>v1.1.0</span>
+    </div>
+  </div>
+
+  <div class="container">
+    <!-- 좌측 메인 플레이어 영역 -->
+    <div class="player-section">
+      <!-- 검색창 및 URL 입력 -->
+      <div class="search-bar-wrap">
+        <input type="text" id="searchInput" class="search-input" placeholder="유튜브 검색어 또는 비디오 URL을 입력하세요..." onkeydown="if(event.key==='Enter') executeSearch()" />
+        <button class="btn-action" onclick="executeSearch()">검색 / 연결</button>
+      </div>
+
+      <!-- 메인 비디오 플레이어 -->
+      <div class="video-container">
+        <div id="player"></div>
+      </div>
+
+      <!-- 하단 툴바 및 자동재생 토글 -->
+      <div class="player-toolbar">
+        <div class="now-playing-title" id="nowPlayingText">🎵 현재 재생 중: Queen - Bohemian Rhapsody</div>
+        <div class="autoplay-toggle">
+          <span>다음 곡 자동재생 (알고리즘)</span>
+          <label class="switch">
+            <input type="checkbox" id="autoplayCheck" checked onchange="toggleAutoplay(this.checked)">
+            <span class="slider"></span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- 우측 상태 및 검색 결과 패널 -->
+    <div class="side-section">
+      <div>
+        <div class="section-title" style="margin-bottom: 8px;">동기화 상태</div>
+        <div class="user-card">
+          <div class="avatar">L.ink</div>
+          <div>
+            <div style="font-size: 12px; font-weight: 600;">내 플레이어</div>
+            <div class="user-status" id="statusText">● 싱크 서버 연결 중...</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="flex: 1; display: flex; flex-direction: column; overflow: hidden;">
+        <div class="section-title" style="margin-bottom: 10px;">
+          <span id="panelTitle">추천 연관 재생목록</span>
+          <span style="font-size: 9px; color: var(--accent-green);" id="searchIndicator">AUTO</span>
+        </div>
+        <div class="results-list" id="resultsList">
+          <!-- 검색 결과/추천 목록이 동적으로 들어옵니다 -->
+        </div>
+      </div>
+
+      <div>
+        <div class="section-title" style="margin-bottom: 6px;">동기화 이벤트 로그</div>
+        <div class="sync-log" id="logBox">
+          [System] Youtube L.ink 초기화 완료
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 라이브러리 불러오기 -->
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <script src="https://www.youtube.com/iframe_api"></script>
+
+  <script>
+    const { ipcRenderer } = require('electron');
+
+    let player;
+    let socket;
+    let isRemote = false;
+    let currentVideoId = 'fJ9rUzIMcZQ';
+    let isAutoplayEnabled = true;
+
+    // 1. 소켓 서버 연결
+    socket = io('http://localhost:3000');
+
+    socket.on('connect', () => {
+      document.getElementById('statusText').innerText = '● 실시간 싱크 연결됨';
+      addLog('[Socket] 서버와 정상 연결되었습니다.');
+    });
+
+    socket.on('init-state', (state) => {
+      if (state.videoId) {
+        currentVideoId = state.videoId;
+        if (player && player.loadVideoById) {
+          player.loadVideoById(state.videoId);
+        }
+      }
+      isAutoplayEnabled = state.isAutoplay ?? true;
+      document.getElementById('autoplayCheck').checked = isAutoplayEnabled;
+      fetchRelatedVideos('Queen - Bohemian Rhapsody');
+    });
+
+    socket.on('sync-action', (data) => {
+      if (!player) return;
+      isRemote = true;
+
+      if (data.action === 'load') {
+        currentVideoId = data.videoId;
+        player.loadVideoById(data.videoId);
+        if (data.title) updateNowPlaying(data.title);
+        fetchRelatedVideos(data.title || data.videoId);
+        addLog(`[Link] 새 영상 로드: ${data.videoId}`);
+      } else if (data.action === 'play') {
+        player.seekTo(data.time, true);
+        player.playVideo();
+        addLog(`[Sync] 재생 시작 (${Math.floor(data.time)}초)`);
+      } else if (data.action === 'pause') {
+        player.seekTo(data.time, true);
+        player.pauseVideo();
+        addLog(`[Sync] 일시정지 (${Math.floor(data.time)}초)`);
+      }
+
+      setTimeout(() => { isRemote = false; }, 500);
+    });
+
+    socket.on('toggle-autoplay', (data) => {
+      isAutoplayEnabled = data.isAutoplay;
+      document.getElementById('autoplayCheck').checked = isAutoplayEnabled;
+      addLog(`[Sync] 자동재생 설정 변경: ${isAutoplayEnabled ? '켜짐' : '꺼짐'}`);
+    });
+
+    // 2. 유튜브 플레이어 API 세팅
+    function onYouTubeIframeAPIReady() {
+      player = new YT.Player('player', {
+        videoId: currentVideoId,
+        playerVars: { 'autoplay': 0, 'controls': 1 },
+        events: {
+          'onStateChange': onPlayerStateChange
+        }
+      });
+    }
+
+    function onPlayerStateChange(event) {
+      if (isRemote || !socket) return;
+
+      const currentTime = player.getCurrentTime();
+
+      if (event.data === YT.PlayerState.PLAYING) {
+        socket.emit('sync-action', { action: 'play', time: currentTime });
+      } else if (event.data === YT.PlayerState.PAUSED) {
+        socket.emit('sync-action', { action: 'pause', time: currentTime });
+      } else if (event.data === YT.PlayerState.ENDED) {
+        addLog('[Player] 영상 재생 종료');
+        if (isAutoplayEnabled) {
+          playNextRecommendation();
+        }
+      }
+    }
+
+    // 3. 검색 및 비디오 교체 로직 (IPC를 통한 초고속 검색)
+    function executeSearch() {
+      const input = document.getElementById('searchInput').value.trim();
+      if (!input) return;
+
+      // 유튜브 URL일 경우 정규식으로 비디오 ID 추출
+      const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+      const match = input.match(regExp);
+
+      if (match && match[2].length === 11) {
+        const videoId = match[2];
+        playAndSyncVideo(videoId, `유튜브 영상 (${videoId})`);
+      } else {
+        // 일반 검색어인 경우 검색 기능 실행
+        performSearchQuery(input);
+      }
+    }
+
+    async function performSearchQuery(query) {
+      document.getElementById('panelTitle').innerText = `'${query}' 검색 결과`;
+      document.getElementById('searchIndicator').innerText = 'SEARCH';
+      
+      const resultsList = document.getElementById('resultsList');
+      resultsList.innerHTML = '<div style="font-size:12px; color:var(--text-sub); text-align:center; padding:20px;">검색 중...</div>';
+
+      try {
+        // Electron Main 프로세스의 yt-search 핸들러 호출 (0.1~0.3초 처리)
+        const results = await ipcRenderer.invoke('search-youtube', query);
+        if (results && results.length > 0) {
+          renderVideoCards(results);
+        } else {
+          resultsList.innerHTML = '<div style="font-size:12px; color:var(--text-sub); text-align:center; padding:20px;">검색 결과가 없습니다.</div>';
+        }
+      } catch (err) {
+        console.error('Search error:', err);
+        resultsList.innerHTML = '<div style="font-size:12px; color:var(--accent-red); text-align:center; padding:20px;">검색 오류가 발생했습니다.</div>';
+      }
+    }
+
+    async function fetchRelatedVideos(queryOrTitle) {
+      document.getElementById('panelTitle').innerText = '알고리즘 추천 연관목록';
+      document.getElementById('searchIndicator').innerText = 'AUTO';
+
+      try {
+        // 현재 곡 제목 기반 연관 검색 결과 표시
+        const searchQuery = typeof queryOrTitle === 'string' ? `${queryOrTitle} 노래 추천` : '인기 음악 플레이리스트';
+        const results = await ipcRenderer.invoke('search-youtube', searchQuery);
+        if (results && results.length > 0) {
+          renderVideoCards(results);
+        }
+      } catch (err) {
+        console.error('Fetch related error:', err);
+      }
+    }
+
+    function renderVideoCards(videos) {
+      const resultsList = document.getElementById('resultsList');
+      resultsList.innerHTML = '';
+
+      videos.forEach(item => {
+        const videoId = item.id || item.videoId;
+        if (!videoId) return;
+
+        const title = item.title || '제목 없음';
+        const channel = item.author || 'YouTube';
+        const thumb = item.thumbnail || `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+
+        const card = document.createElement('div');
+        card.className = 'video-card';
+        card.onclick = () => playAndSyncVideo(videoId, title);
+
+        card.innerHTML = `
+          <img class="card-thumb" src="${thumb}" alt="thumb" onerror="this.src='https://img.youtube.com/vi/${videoId}/hqdefault.jpg'">
+          <div class="card-info">
+            <div class="card-title">${title}</div>
+            <div class="card-channel">${channel}</div>
+          </div>
+        `;
+        resultsList.appendChild(card);
+      });
+    }
+
+    function playAndSyncVideo(videoId, title) {
+      currentVideoId = videoId;
+      player.loadVideoById(videoId);
+      updateNowPlaying(title);
+
+      socket.emit('sync-action', { action: 'load', videoId: videoId, title: title });
+      addLog(`[Link] 비디오 교체: ${title}`);
+
+      fetchRelatedVideos(title);
+    }
+
+    function playNextRecommendation() {
+      const firstCard = document.querySelector('.video-card');
+      if (firstCard) {
+        addLog('[Autoplay] 다음 연관 곡을 자동으로 시작합니다...');
+        firstCard.click();
+      }
+    }
+
+    function toggleAutoplay(enabled) {
+      isAutoplayEnabled = enabled;
+      socket.emit('toggle-autoplay', { isAutoplay: enabled });
+      addLog(`[Autoplay] 자동재생 ${enabled ? '켜짐' : '꺼짐'}`);
+    }
+
+    function updateNowPlaying(title) {
+      document.getElementById('nowPlayingText').innerText = `🎵 현재 재생 중: ${title}`;
+    }
+
+    function addLog(msg) {
+      const logBox = document.getElementById('logBox');
+      logBox.innerHTML += `<br>${msg}`;
+      logBox.scrollTop = logBox.scrollHeight;
+    }
+  </script>
+</body>
+</html>

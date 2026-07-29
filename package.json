@@ -1,0 +1,52 @@
+{
+  "name": "youtube-l.ink",
+  "version": "1.1.0",
+  "description": "Real-time Youtube Sync Player with Search & Autoplay - Youtube L.ink",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "server": "node server.js",
+    "build": "electron-builder --win"
+  },
+  "keywords": [
+    "youtube",
+    "sync",
+    "electron",
+    "socket.io",
+    "autoplay"
+  ],
+  "author": "Youtube Link Team",
+  "license": "ISC",
+  "devDependencies": {
+    "electron": "^28.0.0",
+    "electron-builder": "^24.13.3"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "fs-extra": "^11.4.0",
+    "socket.io": "^4.7.2",
+    "socket.io-client": "^4.7.2",
+    "yt-search": "^2.12.1"
+  },
+  "build": {
+    "appId": "com.youtubelink.app",
+    "productName": "Youtube L.ink",
+    "npmRebuild": false,
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ],
+      "verifyUpdateCodeSignature": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    }
+  }
+}
