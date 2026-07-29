@@ -163,7 +163,7 @@
     let isAutoplayEnabled = true;
 
     // 1. 소켓 서버 연결
-    socket = io('http://localhost:3000');
+    const socket = io('https://youtube-l-ink-server.onrender.com');
 
     socket.on('connect', () => {
       document.getElementById('statusText').innerText = '● 실시간 싱크 연결됨';
