@@ -218,56 +218,31 @@
       margin-left: 4px;
     }
 
-    .tab-header {
-      display: flex;
-      gap: 8px;
-      margin-bottom: 4px;
-    }
+    .tab-header { display: flex; gap: 8px; margin-bottom: 4px; }
     .tab-btn {
-      flex: 1;
-      padding: 6px 10px;
-      background: var(--bg-input);
-      border: 1px solid var(--border-color);
-      color: var(--text-sub);
-      font-size: 11px;
-      font-weight: 700;
-      border-radius: 8px;
-      cursor: pointer;
-      text-align: center;
-      transition: all 0.2s;
+      flex: 1; padding: 6px 10px;
+      background: var(--bg-input); border: 1px solid var(--border-color);
+      color: var(--text-sub); font-size: 11px; font-weight: 700;
+      border-radius: 8px; cursor: pointer; text-align: center; transition: all 0.2s;
     }
     .tab-btn.active {
-      background: rgba(255, 255, 255, 0.1);
-      color: var(--text-main);
+      background: rgba(255, 255, 255, 0.1); color: var(--text-main);
       border-color: rgba(255, 255, 255, 0.2);
     }
 
     .results-list, .queue-list { 
-      flex: 1; 
-      overflow-y: auto; 
-      display: flex; 
-      flex-direction: column; 
-      gap: 10px; 
-      padding-right: 4px; 
+      flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding-right: 4px; 
     }
     .results-list::-webkit-scrollbar, .queue-list::-webkit-scrollbar { width: 4px; }
     .results-list::-webkit-scrollbar-thumb, .queue-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 4px; }
 
     .video-card { 
-      display: flex; 
-      gap: 10px; 
-      background: var(--bg-input); 
-      padding: 8px; 
-      border-radius: 12px; 
-      border: 1px solid var(--border-color); 
-      align-items: center;
-      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); 
-      position: relative;
+      display: flex; gap: 10px; background: var(--bg-input); padding: 8px; 
+      border-radius: 12px; border: 1px solid var(--border-color); align-items: center;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); position: relative;
     }
     .video-card:hover { 
-      background: var(--bg-hover); 
-      border-color: rgba(255, 255, 255, 0.2); 
-      transform: translateX(3px); 
+      background: var(--bg-hover); border-color: rgba(255, 255, 255, 0.2); transform: translateX(3px); 
     }
     .card-thumb { width: 80px; height: 45px; border-radius: 6px; object-fit: cover; flex-shrink: 0; background: #18181b; cursor: pointer; }
     .card-info { display: flex; flex-direction: column; justify-content: center; gap: 2px; overflow: hidden; flex: 1; cursor: pointer; }
@@ -275,35 +250,19 @@
     .card-channel { font-size: 10px; color: var(--text-sub); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
     .btn-add-queue, .btn-remove-queue {
-      background: rgba(255, 255, 255, 0.08);
-      border: none;
-      color: #fff;
-      border-radius: 6px;
-      width: 26px;
-      height: 26px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      font-size: 12px;
-      flex-shrink: 0;
-      transition: background 0.2s;
+      background: rgba(255, 255, 255, 0.08); border: none; color: #fff;
+      border-radius: 6px; width: 26px; height: 26px; display: flex;
+      align-items: center; justify-content: center; cursor: pointer;
+      font-size: 12px; flex-shrink: 0; transition: background 0.2s;
     }
     .btn-add-queue:hover { background: var(--accent-green); }
     .btn-remove-queue:hover { background: var(--accent-red); }
 
     .sync-log { 
-      height: 85px; 
-      background: var(--bg-input); 
-      border-radius: 12px; 
-      padding: 10px; 
-      font-family: 'JetBrains Mono', monospace, sans-serif; 
-      font-size: 10px; 
-      color: var(--text-sub); 
-      overflow-y: auto; 
-      border: 1px solid var(--border-color); 
-      flex-shrink: 0; 
-      line-height: 1.5;
+      height: 85px; background: var(--bg-input); border-radius: 12px; 
+      padding: 10px; font-family: 'JetBrains Mono', monospace, sans-serif; 
+      font-size: 10px; color: var(--text-sub); overflow-y: auto; 
+      border: 1px solid var(--border-color); flex-shrink: 0; line-height: 1.5;
     }
   </style>
 </head>
@@ -370,7 +329,7 @@
       <div>
         <div class="section-title" style="margin-bottom: 8px;">실시간 이벤트 로그</div>
         <div class="sync-log" id="logBox">
-          [System] 초고속 광고 차단 및 동시 출발 시스템 가동 중
+          [System] 호스트 알고리즘 동기화 및 자동 재생 시스템 가동 중
         </div>
       </div>
     </div>
@@ -403,24 +362,35 @@
         .replace(/'/g, "&#039;");
     }
 
+    // 유튜브 URL에서 Video ID 추출 보조 함수
+    function extractVideoId(url) {
+      if (!url) return null;
+      const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+      const match = url.match(regExp);
+      return (match && match[2].length === 11) ? match[2] : null;
+    }
+
     window.addEventListener('DOMContentLoaded', () => {
       playerWebview = document.getElementById('playerWebview');
 
-      playerWebview.addEventListener('will-navigate', (e) => {
-        if (!isHost || isRemote) return;
-
-        const url = e.url;
-        const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
-        const match = url.match(regExp);
-
-        if (match && match[2].length === 11) {
-          const nextVideoId = match[2];
-          if (nextVideoId !== currentVideoId) {
-            addLog(`[Autoplay Sync] 호스트 탐색 감지 -> 전체 동기화 (${nextVideoId})`);
-            playAndSyncVideo(nextVideoId, '알고리즘 추천 곡');
+      // 🔥 [핵심] 호스트 알고리즘 다음곡 감지 및 파티원 동기화
+      const handleUrlChange = (url) => {
+        const nextVideoId = extractVideoId(url);
+        if (nextVideoId && nextVideoId !== currentVideoId) {
+          if (isHost && !isRemote) {
+            addLog(`[Host Sync] 호스트 알고리즘 다음곡 탐지 -> 전체 동기화 (${nextVideoId})`);
+            playAndSyncVideo(nextVideoId, '방장 추천 알고리즘 곡');
+          } else if (!isHost && !isRemote) {
+            // 호스트가 아닌 사용자가 제각각 이동하는 것을 방지 (호스트 영상으로 유지)
+            addLog(`[System] 파티원 개별 탐색 차단 -> 방장 화면에 고정합니다.`);
+            loadYoutubeVideo(currentVideoId);
           }
         }
-      });
+      };
+
+      // Webview의 이동(이벤트/네비게이션) 실시간 감지
+      playerWebview.addEventListener('will-navigate', (e) => handleUrlChange(e.url));
+      playerWebview.addEventListener('did-navigate', (e) => handleUrlChange(e.url));
 
       playerWebview.addEventListener('dom-ready', () => {
         playerWebview.insertCSS(`
@@ -435,11 +405,19 @@
           #primary, ytd-watch-flexy, #player, #player-container, .html5-video-player { width: 100vw !important; height: 100vh !important; max-height: 100vh !important; }
         `);
 
-        // ⚡ [초고속 광고 스킵 + 준비 완료 상태 감지]
+        // 웹뷰 내부 URL 변화 감지 (SPA 알고리즘 이동 감지 스크립트)
         playerWebview.executeJavaScript(`
           (function() {
-            if (window.__ultraAdBlocker) return;
-            window.__ultraAdBlocker = true;
+            if (window.__urlTracker) return;
+            window.__urlTracker = true;
+
+            let lastUrl = location.href;
+            setInterval(() => {
+              if (location.href !== lastUrl) {
+                lastUrl = location.href;
+                console.log('[URL_CHANGED]:' + location.href);
+              }
+            }, 500);
 
             function processAd() {
               const player = document.querySelector('.html5-video-player');
@@ -464,10 +442,7 @@
             });
 
             observer.observe(document.body, {
-              childList: true,
-              subtree: true,
-              attributes: true,
-              attributeFilter: ['class', 'src']
+              childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'src']
             });
 
             setInterval(() => {
@@ -475,11 +450,9 @@
               const player = document.querySelector('.html5-video-player');
               const isAd = player && player.classList.contains('ad-showing');
 
-              // 광고가 모두 끝나고 본 비디오 재생 준비가 완료되면 클라이언트에 알림
               if (video && !isAd && video.readyState >= 3) {
                 console.log('[READY_FOR_SYNC]');
               }
-
               if (video && !video.paused && !isAd) {
                 console.log('[TIME_SYNC]:' + video.currentTime);
               }
@@ -492,14 +465,16 @@
       });
 
       playerWebview.addEventListener('console-message', (e) => {
-        // ⚡ 광고 스킵 및 영상 로딩이 완료되면 서버로 준비완료 상태 전달
-        if (e.message === '[READY_FOR_SYNC]') {
+        if (e.message.startsWith('[URL_CHANGED]:')) {
+          const url = e.message.replace('[URL_CHANGED]:', '');
+          handleUrlChange(url);
+        }
+        else if (e.message === '[READY_FOR_SYNC]') {
           if (!readySent) {
             readySent = true;
-            // 재생 전 일단 일시정지 상태 유지
             playerWebview.executeJavaScript(`document.querySelector('video')?.pause();`);
             socket.emit('client-ready', { videoId: currentVideoId });
-            addLog('[Sync] 광고 처리/로딩 완료 -> 파티원 동시 출발 대기 중...');
+            addLog('[Sync] 로딩 완료 -> 파티원 동시 출발 대기 중...');
           }
         }
         else if (e.message.startsWith('[TIME_SYNC]:')) {
@@ -522,7 +497,7 @@
 
     function loadYoutubeVideo(videoId) {
       if (!playerWebview) return;
-      readySent = false; // 준비 상태 초기화
+      readySent = false;
       const watchUrl = `https://www.youtube.com/watch?v=${videoId}`;
       playerWebview.src = watchUrl;
     }
@@ -532,9 +507,11 @@
       if (now - lastNextTriggerTime < 3000) return;
       lastNextTriggerTime = now;
 
+      // 우선순위 1: 대기열 곡 재생
       if (playQueue.length > 0) {
         playNextInQueue();
       } 
+      // 우선순위 2: 호스트가 알고리즘 자동재생
       else if (isAutoplayEnabled) {
         if (isHost) {
           playerWebview.executeJavaScript(`
@@ -547,19 +524,15 @@
             })();
           `).then((nextUrl) => {
             if (nextUrl) {
-              const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
-              const match = nextUrl.match(regExp);
-              if (match && match[2].length === 11) {
-                const nextVideoId = match[2];
-                addLog(`[Autoplay Sync] 호스트 알고리즘 곡으로 전체 전환: ${nextVideoId}`);
+              const nextVideoId = extractVideoId(nextUrl);
+              if (nextVideoId) {
+                addLog(`[Autoplay] 호스트 다음 알고리즘 전환: ${nextVideoId}`);
                 playAndSyncVideo(nextVideoId, '알고리즘 추천 곡');
               }
-            } else {
-              playerWebview.executeJavaScript(`document.querySelector('a.ytp-next-button')?.click();`);
             }
           });
         } else {
-          addLog('[Autoplay Sync] 호스트의 다음 알고리즘 곡 전환을 기다리는 중...');
+          addLog('[Autoplay Sync] 호스트의 알고리즘 전환 신호를 기다리는 중...');
         }
       }
     }
@@ -618,15 +591,27 @@
       setTimeout(() => { isRemote = false; }, 1000);
     });
 
-    // 🚀 [서버로부터 전원 준비 완료 메시지를 받으면 동시에 재생 시작!]
     socket.on('start-play', (data) => {
       addLog('🚀 모든 사용자 준비 완료! 동시에 재생을 시작합니다.');
+      
       playerWebview.executeJavaScript(`
-        const video = document.querySelector('video');
-        if (video) {
-          video.currentTime = ${data.currentTime || 0};
-          video.play();
-        }
+        (function() {
+          const video = document.querySelector('video');
+          if (video) {
+            video.currentTime = ${data.currentTime || 0};
+            
+            var playPromise = video.play();
+            if (playPromise !== undefined) {
+              playPromise.then(() => {
+                console.log('재생 성공!');
+              }).catch(error => {
+                console.log('자동재생 블락됨 -> 음소거 후 재생 시도');
+                video.muted = true;
+                video.play();
+              });
+            }
+          }
+        })();
       `);
     });
 
@@ -666,13 +651,7 @@
         return;
       }
 
-      const queueItem = {
-        videoId: vId,
-        title: title,
-        channel: author,
-        thumbnail: thumb
-      };
-
+      const queueItem = { videoId: vId, title: title, channel: author, thumbnail: thumb };
       playQueue.push(queueItem);
       renderQueueList();
 
@@ -752,11 +731,8 @@
 
       switchTab('search');
 
-      const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
-      const match = input.match(regExp);
-
-      if (match && match[2].length === 11) {
-        const videoId = match[2];
+      const videoId = extractVideoId(input);
+      if (videoId) {
         playAndSyncVideo(videoId, `유튜브 영상 (${videoId})`);
       } else {
         performSearchQuery(input);
