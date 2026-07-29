@@ -55,8 +55,9 @@ io.on('connection', (socket) => {
     roomState = { ...roomState, ...data };
 
     if (data.action === 'load') {
-      readyClients.clear(); // 준원 상태 초기화
+      readyClients.clear(); // 준비 상태 초기화
       roomState.time = 0;
+      roomState.action = 'pause';
     }
 
     socket.broadcast.emit('sync-action', data);
@@ -68,11 +69,15 @@ io.on('connection', (socket) => {
       readyClients.add(socket.id);
 
       const totalConnected = io.engine.clientsCount;
-      console.log(`[Sync Ready] (${readyClients.size}/${totalConnected}) 명 광고 스킵 완료/준비 완료`);
+      console.log(`[Sync Ready] (${readyClients.size}/${totalConnected}) 명 준비 완료`);
 
-      // 파티 내 모든 접속자가 광고 스킵 및 로딩이 완료되면 동시 출발!
+      // 파티 내 모든 접속자가 준비되면 동시 출발!
       if (readyClients.size >= totalConnected) {
         console.log(`🚀 [Youtube L.ink] 모든 인원 동시 재생 신호 전송`);
+        
+        roomState.action = 'play';
+        roomState.time = 0;
+
         io.emit('start-play', {
           videoId: roomState.videoId,
           currentTime: 0
