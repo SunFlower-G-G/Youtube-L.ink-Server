@@ -329,7 +329,7 @@
       <div>
         <div class="section-title" style="margin-bottom: 8px;">실시간 이벤트 로그</div>
         <div class="sync-log" id="logBox">
-          [System] 호스트 알고리즘 동기화 및 자동 재생 시스템 가동 중
+          [System] 양방향 구간 스킵 및 동시 동기화 가동 중
         </div>
       </div>
     </div>
@@ -362,7 +362,6 @@
         .replace(/'/g, "&#039;");
     }
 
-    // 유튜브 URL에서 Video ID 추출 보조 함수
     function extractVideoId(url) {
       if (!url) return null;
       const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
@@ -373,7 +372,6 @@
     window.addEventListener('DOMContentLoaded', () => {
       playerWebview = document.getElementById('playerWebview');
 
-      // 🔥 [핵심] 호스트 알고리즘 다음곡 감지 및 파티원 동기화
       const handleUrlChange = (url) => {
         const nextVideoId = extractVideoId(url);
         if (nextVideoId && nextVideoId !== currentVideoId) {
@@ -381,14 +379,12 @@
             addLog(`[Host Sync] 호스트 알고리즘 다음곡 탐지 -> 전체 동기화 (${nextVideoId})`);
             playAndSyncVideo(nextVideoId, '방장 추천 알고리즘 곡');
           } else if (!isHost && !isRemote) {
-            // 호스트가 아닌 사용자가 제각각 이동하는 것을 방지 (호스트 영상으로 유지)
             addLog(`[System] 파티원 개별 탐색 차단 -> 방장 화면에 고정합니다.`);
             loadYoutubeVideo(currentVideoId);
           }
         }
       };
 
-      // Webview의 이동(이벤트/네비게이션) 실시간 감지
       playerWebview.addEventListener('will-navigate', (e) => handleUrlChange(e.url));
       playerWebview.addEventListener('did-navigate', (e) => handleUrlChange(e.url));
 
@@ -405,7 +401,7 @@
           #primary, ytd-watch-flexy, #player, #player-container, .html5-video-player { width: 100vw !important; height: 100vh !important; max-height: 100vh !important; }
         `);
 
-        // 웹뷰 내부 URL 변화 감지 (SPA 알고리즘 이동 감지 스크립트)
+        // 웹뷰 스크립트 주입 (Seeking 구간 건너뛰기 이벤트 감지 추가)
         playerWebview.executeJavaScript(`
           (function() {
             if (window.__urlTracker) return;
@@ -450,6 +446,14 @@
               const player = document.querySelector('.html5-video-player');
               const isAd = player && player.classList.contains('ad-showing');
 
+              // 🔥 [구간 탐색/건너뛰기 실시간 감지]
+              if (video && !video.__seekListener) {
+                video.__seekListener = true;
+                video.addEventListener('seeking', () => {
+                  console.log('[SEEK_EVENT]:' + video.currentTime);
+                });
+              }
+
               if (video && !isAd && video.readyState >= 3) {
                 console.log('[READY_FOR_SYNC]');
               }
@@ -468,6 +472,14 @@
         if (e.message.startsWith('[URL_CHANGED]:')) {
           const url = e.message.replace('[URL_CHANGED]:', '');
           handleUrlChange(url);
+        }
+        // 🔥 [양방향 구간 스킵 감지] 방장/파티원 누구든 스킵하면 서버로 보고
+        else if (e.message.startsWith('[SEEK_EVENT]:')) {
+          if (isRemote) return; // 외부 신호 수신으로 인한 조작은 무시 (반복루프 방지)
+
+          const seekTime = parseFloat(e.message.replace('[SEEK_EVENT]:', ''));
+          socket.emit('sync-seek', { currentTime: seekTime });
+          addLog(`[Seek] 구간 스킵 감지 -> (${Math.floor(seekTime)}초) 전체 동기화`);
         }
         else if (e.message === '[READY_FOR_SYNC]') {
           if (!readySent) {
@@ -507,11 +519,9 @@
       if (now - lastNextTriggerTime < 3000) return;
       lastNextTriggerTime = now;
 
-      // 우선순위 1: 대기열 곡 재생
       if (playQueue.length > 0) {
         playNextInQueue();
       } 
-      // 우선순위 2: 호스트가 알고리즘 자동재생
       else if (isAutoplayEnabled) {
         if (isHost) {
           playerWebview.executeJavaScript(`
@@ -613,6 +623,25 @@
           }
         })();
       `);
+    });
+
+    // 🔥 [양방향 구간 이동 수신] 타인에 의해 구간이 스킵되면 내 영상 위치도 즉시 이동
+    socket.on('sync-seek', (data) => {
+      if (!playerWebview) return;
+      isRemote = true;
+
+      playerWebview.executeJavaScript(`
+        (function() {
+          const video = document.querySelector('video');
+          if (video) {
+            video.currentTime = ${data.currentTime};
+          }
+        })();
+      `);
+
+      addLog(`[Seek Sync] 누군가에 의해 ${Math.floor(data.currentTime)}초로 구간이 스킵되었습니다.`);
+
+      setTimeout(() => { isRemote = false; }, 1200);
     });
 
     socket.on('sync-time', (data) => {
@@ -810,9 +839,11 @@
     }
 
     function addLog(msg) {
-      const logBox = document.getElementById('logBox');
-      logBox.innerHTML += `<br>${msg}`;
-      logBox.scrollTop = logBox.scrollHeight;
+      const logBox = document.innerHTML ? document.getElementById('logBox') : null;
+      if (logBox) {
+        logBox.innerHTML += `<br>${msg}`;
+        logBox.scrollTop = logBox.scrollHeight;
+      }
     }
   </script>
 </body>

@@ -54,7 +54,7 @@ io.on('connection', (socket) => {
     roomState = { ...roomState, ...data };
 
     if (data.action === 'load') {
-      readyClients.clear(); // 준원 상태 리셋
+      readyClients.clear();
       roomState.time = 0;
       roomState.action = 'pause';
     }
@@ -70,7 +70,6 @@ io.on('connection', (socket) => {
       const totalConnected = io.engine.clientsCount;
       console.log(`[Sync Ready] (${readyClients.size}/${totalConnected}) 명 준비 완료`);
 
-      // 방 안의 모든 인원이 준원 완료되면 일괄 출발!
       if (readyClients.size >= totalConnected) {
         console.log(`🚀 [Youtube L.ink] 모든 인원 동시 재생 신호 전송`);
         
@@ -84,6 +83,13 @@ io.on('connection', (socket) => {
         readyClients.clear();
       }
     }
+  });
+
+  // ⏩ 양방향 구간 이동(Seeking) 동기화 (방장 & 파티원 모두 적용)
+  socket.on('sync-seek', (data) => {
+    roomState.time = data.currentTime;
+    // 신호를 보낸 본인을 제외한 모든 인원(방장 포함)에게 전파
+    socket.broadcast.emit('sync-seek', data);
   });
 
   // 재생 시간 미세 동기화
